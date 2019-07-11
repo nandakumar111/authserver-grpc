@@ -1,0 +1,26 @@
+{
+  "_id": "authentication_service",
+  "server": {
+    "type": "GRPC",
+    "host": "localhost",
+    "port": "8080",
+    "status": "active"
+  },
+  "optional_server": {
+    "type": "REST",
+    "host": "localhost",
+    "port": "8081",
+    "status": "inactive"
+  },
+  "database": {
+    "mongo_db": {
+      "host": "localhost",
+      "port": "37017"
+    }
+  },
+  "tls": {
+    "active": false,
+    "certificate": "ssl/server.crt",
+    "key_file": "ssl/server.pem"
+  }
+}
