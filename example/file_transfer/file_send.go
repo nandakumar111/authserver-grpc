@@ -9,16 +9,18 @@ import (
 	"google.golang.org/grpc"
 	"io"
 	"os"
-	"strconv"
 )
 
 const (
 	address   = "localhost:50051"
-	sentValue = 1000000 //limit
+	sentValue = 10000000 //limit
 )
 
 func main() {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+
+	var dialOpt []grpc.DialOption
+	dialOpt = append(dialOpt, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(5*1024*1024*1024*1024), grpc.MaxCallSendMsgSize(5*1024*1024*1024*1024)), grpc.WithInsecure())
+	conn, err := grpc.Dial(address, dialOpt...)
 	if err != nil {
 		log.Fatalf("didn't connect %v", err)
 	}
@@ -30,13 +32,14 @@ func main() {
 		status *pb.UploadStatus
 	)
 	// open input file
-	fi, err := os.Open("./input.dmg")
+	fi, err := os.Open("./cricket.zip")
 	if err != nil {
 		fmt.Println("Not able to open")
 		return
 	}
 
 	stat, err := fi.Stat()
+	fmt.Println(stat.Size())
 	if err != nil {
 		return
 	}
@@ -70,21 +73,24 @@ func main() {
 		if n == 0 {
 			break
 		}
-		var i int64
-		for i = 0; i < ((stat.Size() / sentValue) * sentValue); i += sentValue {
-			err = stream.Send(&pb.Chunk{
-				Content:   buf[i : i+sentValue],
-				TotalSize: strconv.FormatInt(stat.Size(), 10),
-				Received:  strconv.FormatInt(i+sentValue, 10),
-			})
-		}
-		if stat.Size()%sentValue > 0 {
-			err = stream.Send(&pb.Chunk{
-				Content:   buf[((stat.Size() / sentValue) * sentValue):((stat.Size() / sentValue * sentValue) + (stat.Size() % sentValue))],
-				TotalSize: strconv.FormatInt(stat.Size(), 10),
-				Received:  string(stat.Size() % sentValue),
-			})
-		}
+		err = stream.Send(&pb.Chunk{
+			Content: buf[:n],
+		})
+		//var i int64
+		//for i = 0; i < ((stat.Size() / sentValue) * sentValue); i += sentValue {
+		//	err = stream.Send(&pb.Chunk{
+		//		Content:   buf[i : i+sentValue],
+		//		TotalSize: strconv.FormatInt(stat.Size(), 10),
+		//		Received:  strconv.FormatInt(i+sentValue, 10),
+		//	})
+		//}
+		//if stat.Size()%sentValue > 0 {
+		//	err = stream.Send(&pb.Chunk{
+		//		Content:   buf[((stat.Size() / sentValue) * sentValue):((stat.Size() / sentValue * sentValue) + (stat.Size() % sentValue))],
+		//		TotalSize: strconv.FormatInt(stat.Size(), 10),
+		//		Received:  string(stat.Size() % sentValue),
+		//	})
+		//}
 
 		if err != nil {
 			err = errors.Wrapf(err,

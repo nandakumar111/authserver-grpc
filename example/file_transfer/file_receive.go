@@ -20,7 +20,7 @@ type server struct {
 
 func (s *server) Upload(stream pb.GuploadService_UploadServer) (err error) {
 	// open output file
-	fo, err := os.Create("./output")
+	fo, err := os.Create("./cricket1.zip")
 	if err != nil {
 		return errors.New("failed to create file")
 	}
@@ -33,7 +33,9 @@ func (s *server) Upload(stream pb.GuploadService_UploadServer) (err error) {
 	var res *pb.Chunk
 	for {
 		res, err = stream.Recv()
-
+		if err != nil {
+			return err
+		}
 		if err == io.EOF {
 			err = stream.SendAndClose(&pb.UploadStatus{
 				Message: "Upload received with success",
@@ -51,6 +53,7 @@ func (s *server) Upload(stream pb.GuploadService_UploadServer) (err error) {
 			err = errors.New(err.Error())
 			return err
 		}
+		return nil
 	}
 }
 
@@ -59,7 +62,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
+	var options []grpc.ServerOption
+	options = append(options, grpc.MaxSendMsgSize(5*1024*1024*1024*1024), grpc.MaxRecvMsgSize(5*1024*1024*1024*1024))
+	s := grpc.NewServer(options...)
 
 	pb.RegisterGuploadServiceServer(s, &server{})
 
